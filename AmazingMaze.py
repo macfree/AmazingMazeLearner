@@ -7,7 +7,8 @@
 import gym
 import numpy
 from numpy.random import randint as rand
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
+from gym import spaces
 
 def maze(width=81, height=51, complexity=.75, density=.75):
     # Only odd shapes
@@ -38,40 +39,45 @@ def maze(width=81, height=51, complexity=.75, density=.75):
                     x, y = x_, y_
     return Z
 
-pyplot.figure(figsize=(10, 5))
-
-
-pyplot.imshow(Z, cmap=pyplot.cm.binary, interpolation='nearest')
-pyplot.xticks([]), pyplot.yticks([])
-pyplot.show()
-
-
 
 # In[40]:
 
 
 class Maze(gym.Env):
     def __init__(self, size = 5):
+        
+        self.size = size
         self.mapAction = {0:(-1,0),
                          1: (0,1),
                          2: (1,0),
                          3: (0,-1)}
-        self.maze = maze(size,size).astype(float)
-        self.pos = (1,1)
-        print(self.pos)
-        self.goal = (size-2, size-2)
-        self.maze[self.pos] = 2
-        print(self.maze[self.pos])
-        self.maze[self.goal] = 3
-        self.actionHistory = []
-    def render(self):
-        Z = self.maze * 255.0 / 5.0
-        #print(Z)
-        pyplot.imshow(Z, cmap=pyplot.cm.tab20c, interpolation='nearest')
-        #pyplot.imshow()
-        pyplot.xticks([]), pyplot.yticks([])
-        pyplot.pause(0.1)
-        pyplot.show()
+        
+        self.start_pos = (1,1)
+        self.goal = (size-2, size-2)        
+        self.action_space = spaces.Discrete(4)        
+        self.maze = maze(self.size,self.size).astype(float)
+        
+    def render(self,title=""):
+        
+        
+        Z = self.maze.copy()
+        
+        Z[self.pos] = 4
+        Z[self.goal] = 2
+        
+        Z = Z* 255.0 / 5.0  
+        
+        plt.figure(1)
+        plt.clf()
+        plt.imshow(Z, cmap=plt.cm.tab20c, interpolation='nearest')
+        plt.xticks([]), plt.yticks([])
+        plt.title(title)
+        plt.pause(0.1)
+        plt.show()
+        
+    def reset(self):
+        self.pos = self.start_pos
+        return self.pos
         
     def step(self, action):
         newPos = self.mapPos(self.pos,action)
@@ -80,8 +86,8 @@ class Maze(gym.Env):
         elif(newPos == self.goal): # is finished
             return self.pos, 10, True, ""
         else:
-            self.maze[self.pos] = 4
-            self.maze[newPos] = 2
+            #self.maze[self.pos] = 4
+            #self.maze[newPos] = 2
             self.pos = newPos
             return self.pos, -1, False, ""
     def sample(self):
@@ -99,17 +105,17 @@ class Maze(gym.Env):
 
 # In[41]:
 
-
-env = Maze()
-env.render()
-isDone = False
-while not isDone:
-    s_next,r,isDone,_ = env.step(env.sample())
-    
+if __name__=="__main__":
+    env = Maze()
     env.render()
+    isDone = False
+    while not isDone:
+        s_next,r,isDone,_ = env.step(env.sample())
+        
+        env.render()
 
 
-# In[ ]:
+    # In[ ]:
 
 
 
