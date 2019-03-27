@@ -5,10 +5,12 @@
 
 
 import gym
-import numpy
+import numpy as np 
 from numpy.random import randint as rand
 import matplotlib.pyplot as plt
 from gym import spaces
+
+
 
 def maze(width=81, height=51, complexity=.75, density=.75):
     # Only odd shapes
@@ -17,7 +19,7 @@ def maze(width=81, height=51, complexity=.75, density=.75):
     complexity = int(complexity * (5 * (shape[0] + shape[1]))) # number of components
     density    = int(density * ((shape[0] // 2) * (shape[1] // 2))) # size of components
     # Build actual maze
-    Z = numpy.zeros(shape, dtype=bool)
+    Z = np.zeros(shape, dtype=bool)
     # Fill borders
     Z[0, :] = Z[-1, :] = 1
     Z[:, 0] = Z[:, -1] = 1
@@ -52,25 +54,51 @@ class Maze(gym.Env):
                          2: (1,0),
                          3: (0,-1)}
         
+        self.map_action_2_name = {0:"up",1:"right",2:"down",3:"left"}
+        
         self.start_pos = (1,1)
-        self.goal = (size-2, size-2)        
+        self.goals = [ (size-1, size-1),(size-2, size-1),(size-1, size-2),(size-2, size-2) ]    
         self.action_space = spaces.Discrete(4)        
         self.maze = maze(self.size,self.size).astype(float)
+       
+        x = np.arange(0,size)
+        y = np.arange(0,size)
         
-    def render(self,title=""):
+        x_dir = np.zeros((size,))
+        y_dir = np.zeros((size,))
+        
+        self.X, self.Y = np.meshgrid(x,y)
+        
+        self.X_dir, self.Y_dir = np.meshgrid(x_dir,y_dir)
+        
+    def save_greedy_policy(self,state,action):
+        
+        dirr = self.mapAction[action]
+        
+        self.X_dir[state] = dirr[1]*0.5
+        self.Y_dir[state] = -dirr[0]*0.5
+        
+    def render(self,title="",plot_greedy_action=True):
         
         
         Z = self.maze.copy()
         
         Z[self.pos] = 4
-        Z[self.goal] = 2
+        
+        for goal in self.goals:
+            Z[goal] = 2
         
         Z = Z* 255.0 / 5.0  
         
         plt.figure(1)
         plt.clf()
         plt.imshow(Z, cmap=plt.cm.tab20c, interpolation='nearest')
-        plt.xticks([]), plt.yticks([])
+        
+        if plot_greedy_action:
+#            plt.quiver(self.X,self.Y,self.X_dir,self.Y_dir,units="x",scale=1.0)
+            plt.quiver(self.X_dir,self.Y_dir,units="x",scale=1.0)
+       
+        #plt.xticks([]), plt.yticks([])
         plt.title(title)
         plt.pause(0.1)
         plt.show()
@@ -82,9 +110,9 @@ class Maze(gym.Env):
     def step(self, action):
         newPos = self.mapPos(self.pos,action)
         if(self.maze[newPos] == 1): #is wall
-           return self.pos,-2,False,""
-        elif(newPos == self.goal): # is finished
-            return self.pos, 10, True, ""
+           return self.pos,-1,False,""
+        elif(newPos in self.goals): # is finished
+            return self.pos, 1, True, ""
         else:
             #self.maze[self.pos] = 4
             #self.maze[newPos] = 2
