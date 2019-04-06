@@ -9,7 +9,7 @@ import numpy as np
 from numpy.random import randint as rand
 import matplotlib.pyplot as plt
 from gym import spaces
-
+import sys
 
 
 def maze(width=81, height=51, complexity=.75, density=.75):
@@ -41,20 +41,100 @@ def maze(width=81, height=51, complexity=.75, density=.75):
                     x, y = x_, y_
     return Z
 
-
 # In[40]:
 
+class InterActiveAgent:
+    
+    def __init__(self,agent,env):
+        
+        self.agent = agent
+        self.env = env
+        self.key_board_map = {"up":0,"right":1,"down":2,"left":3}
+        self.inv_key_board_map = {0:"up",1:"right",2:"down",3:"left"}
+        self.step_nr = 0
+        self.eps = self.agent.eps
+        self.acc_reward = 0
+        
+        self.action = 0
+        self.Q_value = 0
+        
+        self.fig, self.ax = plt.subplots()
+        
+        self.fig.canvas.mpl_connect("key_press_event",self.press)
+        
+    def press(self,event):
+        
+        sys.stdout.flush()
+        
+        if event.key in self.key_board_map:
+            
+            state = self.state
+            
+            action = self.key_board_map[event.key]
+            
+            # Q_value = self.agent.Q_value(state,action)
+            
+            action, nxt_state, reward, is_done = self._interactive_step(state,action)
+            
+            self.state = nxt_state
+            
+            title_str = self.generate_title_str()
+            
+            self.env.render(title=title_str, plot_greedy_action=True, ax=self.ax)
+            
+            self.fig.canvas.draw()
+            
+            
+        
+    def _interactive_step(self,state,action):
+        
+        nxt_state, reward, is_done, _ =  self.env.step(action)
+        
+        return action, nxt_state, reward, is_done
+        
+    def generate_title_str(self):
+        
+        str_list = [ ]
 
+        greedy_action = self.agent.greedy_policy(self.state)
+            
+        self.env.save_greedy_policy(self.state, greedy_action)
+        
+
+        for a in range(self.agent.n_actions):
+            
+            state_action_info = "Info: "+self.agent.state_action_info(self.state,a)
+            
+            if a == greedy_action:
+            
+                str_list.append("<%s: %f %s>\n"%(self.inv_key_board_map[a],self.agent.Q_value(self.state,a),state_action_info))
+            
+            else:
+            
+                str_list.append("%s: %f %s\n"%(self.inv_key_board_map[a],self.agent.Q_value(self.state,a),state_action_info))
+                
+        return " ".join(str_list)
+    
+    def run_interactive(self):
+        
+        self.step_nr = 0
+        self.acc_reward = 0
+        
+        env = self.env
+        
+        self.state = env.reset()
+        
+        self.env.render(title=self.generate_title_str(),plot_greedy_action=True,ax=self.ax)
+        
 class Maze(gym.Env):
+    
     def __init__(self, size = 5):
         
         self.size = size
-        self.mapAction = {0:(-1,0),
-                         1: (0,1),
-                         2: (1,0),
-                         3: (0,-1)}
-        
-        self.map_action_2_name = {0:"up",1:"right",2:"down",3:"left"}
+        self.mapAction = {0:(-1,0), # up
+                         1: (0,1),  # right
+                         2: (1,0),  # down
+                         3: (0,-1)} # left
         
         self.start_pos = (1,1)
         self.goals = [ (size-1, size-1),(size-2, size-1),(size-1, size-2),(size-2, size-2) ]    
@@ -71,6 +151,7 @@ class Maze(gym.Env):
         
         self.X_dir, self.Y_dir = np.meshgrid(x_dir,y_dir)
         
+        
     def save_greedy_policy(self,state,action):
         
         dirr = self.mapAction[action]
@@ -78,8 +159,7 @@ class Maze(gym.Env):
         self.X_dir[state] = dirr[1]*0.5
         self.Y_dir[state] = -dirr[0]*0.5
         
-    def render(self,title="",plot_greedy_action=True):
-        
+    def render(self,title="",plot_greedy_action=True,ax=None):
         
         Z = self.maze.copy()
         
@@ -90,25 +170,32 @@ class Maze(gym.Env):
         
         Z = Z* 255.0 / 5.0  
         
-        plt.figure(1)
+        if ax is None:
+            plt.figure(1)
+        
         plt.clf()
         plt.imshow(Z, cmap=plt.cm.tab20c, interpolation='nearest')
-        
+
         if plot_greedy_action:
 #            plt.quiver(self.X,self.Y,self.X_dir,self.Y_dir,units="x",scale=1.0)
             plt.quiver(self.X_dir,self.Y_dir,units="x",scale=1.0)
        
         #plt.xticks([]), plt.yticks([])
+        
         plt.title(title)
-        plt.pause(0.1)
-        plt.show()
+        
+        if ax is None:
+            plt.pause(0.1)
+            plt.show()
         
     def reset(self):
         self.pos = self.start_pos
         return self.pos
         
     def step(self, action):
+        
         newPos = self.mapPos(self.pos,action)
+        
         if(self.maze[newPos] == 1): #is wall
            return self.pos,-1,False,""
         elif(newPos in self.goals): # is finished
@@ -118,6 +205,7 @@ class Maze(gym.Env):
             #self.maze[newPos] = 2
             self.pos = newPos
             return self.pos, -1, False, ""
+    
     def sample(self):
         return rand(4)
             
@@ -127,24 +215,20 @@ class Maze(gym.Env):
         c = (a[0] + b[0], a[1] + b[1])
         #print(c)
         return c
-        
-        
-
 
 # In[41]:
 
 if __name__=="__main__":
-    env = Maze()
-    env.render()
-    isDone = False
-    while not isDone:
-        s_next,r,isDone,_ = env.step(env.sample())
-        
-        env.render()
-
-
-    # In[ ]:
-
-
-
-
+    
+    from q_learning import QLearningAgent
+    
+    env  = Maze(10)
+    agent = QLearningAgent(env,0.5,eps=0.8)
+    
+    apa = InterActiveAgent(agent,env)
+    
+    apa.run_interactive()
+    
+    
+    
+    
