@@ -74,6 +74,8 @@ class DynaQLearningAgent(QLearningAgent):
             self.set_Q_value(state,action,Q_target)
             
             self.env.save_greedy_policy(state,greedy_action)
+    def __repr__(self):
+        return "DynaQ"
             
     
 if __name__=="__main__":
