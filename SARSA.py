@@ -13,6 +13,7 @@ class ExpectedSARSAagent(QLearningAgent):
     
     def __init__(self,env,alpha,gamma=0.99,base_value=-1,eps=0.9,eps_decay = 0.9):
         QLearningAgent.__init__(self,env,alpha,gamma,base_value,eps,eps_decay)
+
     
     def _expected_Q_value(self,state):
         

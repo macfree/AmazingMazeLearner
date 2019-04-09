@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
         
 from collections import defaultdict
+import numpy as np
 import random
 
 def evaluate_agent(agent,n_epochs,n_iterations):    
@@ -29,6 +30,7 @@ class BaseValueAgent:
         self.env = env
         self.eps_decay = eps_decay
         self.nr_env_interactions = 0
+        self.env.set_agent(self)
         
     def Q_value(self,state,action):
         return self.q_table[(state,action)]
@@ -74,4 +76,10 @@ class BaseValueAgent:
     def state_action_info(self,state,action):
         return ""
     
+    def q_values_for_state(self, state):
+        q_values = np.zeros((4))
+        for action in range(self.n_actions):            
+            q_values[action] = self.Q_value(state, action)
+        return q_values
+            
     

@@ -8,6 +8,8 @@ import gym
 import numpy as np 
 from numpy.random import randint as rand
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 from gym import spaces
 import sys
 
@@ -95,7 +97,7 @@ class InterActiveAgent:
     def generate_title_str(self):
         
         str_list = [ ]
-
+        state_q_values = []
         greedy_action = self.agent.greedy_policy(self.state)
             
         self.env.save_greedy_policy(self.state, greedy_action)
@@ -125,6 +127,8 @@ class InterActiveAgent:
         self.state = env.reset()
         
         self.env.render(title=self.generate_title_str(),plot_greedy_action=True,ax=self.ax)
+    
+
         
 class Maze(gym.Env):
     
@@ -135,10 +139,13 @@ class Maze(gym.Env):
                          1: (0,1),  # right
                          2: (1,0),  # down
                          3: (0,-1)} # left
+        self.actions = {0,1,2,3}
+        self.nr_actions = 4
+        
         
         self.start_pos = (1,1)
         self.goals = [ (size-1, size-1),(size-2, size-1),(size-1, size-2),(size-2, size-2) ]    
-        self.action_space = spaces.Discrete(4)        
+        self.action_space = spaces.Discrete(4) 
         self.maze = maze(self.size,self.size).astype(float)
        
         x = np.arange(0,size)
@@ -150,14 +157,12 @@ class Maze(gym.Env):
         self.X, self.Y = np.meshgrid(x,y)
         
         self.X_dir, self.Y_dir = np.meshgrid(x_dir,y_dir)
-        
-        
-    def save_greedy_policy(self,state,action):
-        
-        dirr = self.mapAction[action]
-        
-        self.X_dir[state] = dirr[1]*0.5
-        self.Y_dir[state] = -dirr[0]*0.5
+        self.X_dirs  = np.zeros((4,size,size))  
+        self.Y_dirs = np.zeros((4,size,size))  
+        self.Arrow_colours = np.zeros((4,size,size,4))
+        for action in self.actions:
+            self.X_dirs[action], self.Y_dirs[action] = np.meshgrid(x_dir,y_dir)
+
         
     def render(self,title="",plot_greedy_action=True,ax=None):
         
@@ -178,8 +183,10 @@ class Maze(gym.Env):
 
         if plot_greedy_action:
 #            plt.quiver(self.X,self.Y,self.X_dir,self.Y_dir,units="x",scale=1.0)
-            plt.quiver(self.X_dir,self.Y_dir,units="x",scale=1.0)
-       
+            #plt.quiver(self.X_dir,self.Y_dir,units="x",scale=1.0)
+            for action in self.actions:
+                    plt.quiver(self.X_dirs[action], self.Y_dirs[action],units="x",scale=1.0)
+
         #plt.xticks([]), plt.yticks([])
         
         plt.title(title)
@@ -216,6 +223,40 @@ class Maze(gym.Env):
         #print(c)
         return c
 
+    def set_agent(self, agent):
+        self.agent = agent
+        
+    def save_greedy_policy(self,state, greedy_action):
+        dirr = self.mapAction[greedy_action]
+        q_value = []
+        
+        self.X_dir[state] = dirr[1]*0.5
+        self.Y_dir[state] = -dirr[0]*0.5
+        
+        q_value = self.agent.q_values_for_state(state)
+        
+        max_span = np.max(q_value) - np.min(q_value)
+        average = np.average(q_value)
+        max_length = max_span - average
+        cmap = plt.cm.brg
+
+        cNorm  = colors.Normalize(vmin=np.min(q_value), vmax=np.max(q_value))
+        scalarMap = cmx.ScalarMappable(norm=cNorm,cmap=cmap)
+        
+        used_arrows = 0
+        nr_actions = self.nr_actions
+        
+        for action in self.actions:
+            if(q_value[action] != 0):
+                used_arrows += 1
+        for action in self.actions:
+            dirr = self.mapAction[action]
+            colorVal = scalarMap.to_rgba(q_value[action])
+            if nr_actions-used_arrows > 0 and average < 0:
+                self.X_dirs[action][state] = dirr[1]*(q_value[action]-average)/average*0.5
+                self.Y_dirs[action][state] = -dirr[0]*(q_value[action]-average)/average*0.5
+                self.Arrow_colours[action,state] = colorVal
+
 # In[41]:
 
 if __name__=="__main__":
@@ -223,6 +264,7 @@ if __name__=="__main__":
     from q_learning import QLearningAgent
     
     env  = Maze(10)
+    
     agent = QLearningAgent(env,0.5,eps=0.8)
     
     apa = InterActiveAgent(agent,env)
