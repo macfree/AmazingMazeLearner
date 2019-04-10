@@ -235,7 +235,9 @@ class Maze(gym.Env):
         
         q_value = self.agent.q_values_for_state(state)
         
-        max_span = np.max(q_value) - np.min(q_value)
+        min_q_value = np.min(q_value)
+        max_q_value = np.max(q_value)
+        max_span = max_q_value - min_q_value
         average = np.average(q_value)
         max_length = max_span - average
         cmap = plt.cm.brg
@@ -253,8 +255,8 @@ class Maze(gym.Env):
             dirr = self.mapAction[action]
             colorVal = scalarMap.to_rgba(q_value[action])
             if nr_actions-used_arrows > 0 and average < 0:
-                self.X_dirs[action][state] = dirr[1]*(q_value[action]-average)/average*0.5
-                self.Y_dirs[action][state] = -dirr[0]*(q_value[action]-average)/average*0.5
+                self.X_dirs[action][state] = dirr[1]*(q_value[action]-min_q_value)/max_span*0.5
+                self.Y_dirs[action][state] = -dirr[0]*(q_value[action]-min_q_value)/max_span*0.5
                 self.Arrow_colours[action,state] = colorVal
 
 # In[41]:
