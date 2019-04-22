@@ -3,18 +3,15 @@
 from AmazingMaze import Maze, InterActiveAgent
 from q_learning import QLearningAgent
 from dynaq_learning import DynaQLearningAgent
+
 from SARSA import ExpectedSARSAagent, SARSAAgent, NStepSARSAAgent
 from MCC import FirstVistMCC
 import matplotlib.pyplot as plt
 
-env  = Maze(10)
+env  = gym.make("CartPole-v0")
 
-agents = [#NStepSARSAAgent(env, alpha=0.3, N=5, gamma=0.99, eps=0.9, eps_decay=0.99),
-          #SARSAAgent(env,alpha=0.35,eps=0.99),
-          #QLearningAgent(env,0.5,eps=0.8),
-          #ExpectedSARSAagent(env,alpha=0.34,eps=0.99),
-          FirstVistMCC(env,gamma=0.99,eps=0.9,eps_decay=0.99),
-          #DynaQLearningAgent(env,alpha=0.9, eps=0.99,nr_updates=10)
+agents = [
+        
         ]
 
 rewards = {str(agent):agent.train(1,render=False) for agent in agents}

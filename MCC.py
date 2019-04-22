@@ -76,8 +76,10 @@ class FirstVistMCC(BaseValueAgent):
             self.eps *= self.eps_decay
             
             Gt = 0.0
+            rev_state_actions = reversed(state_actions)
+            rev_rewards = reversed(rewards)
             
-            for i, ((s,a), r) in enumerate(reversed(zip(state_actions,rewards))):
+            for i, ((s,a), r) in enumerate(zip(rev_state_actions,rev_rewards)):
 
                 Gt = r + Gt*self.gamma
                 
